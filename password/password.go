@@ -118,18 +118,16 @@ func (p *Passwd) Bytes() []byte {
 
 // determine input type and decode accordingly
 func decode(encoded []byte) (dst []byte, err error) {
-	var n int
-
 	var b64NotHex = []byte("GHIJKLMNOPQRSTUVWXYZghijklmnopqrstuvwxyz+/-_")
 	if bytes.IndexAny(b64NotHex, string(encoded)) < 0 {
 		dst = make([]byte, hex.DecodedLen(len(encoded)))
-		n, err = hex.Decode(dst, encoded)
-	} else {
-		enc := base64.StdEncoding
-		dst = make([]byte, enc.DecodedLen(len(encoded)))
-		n, err = enc.Decode(dst, encoded)
+		n, err := hex.Decode(dst, encoded)
+		return dst[:n], err
 	}
 
+	enc := base64.StdEncoding
+	dst = make([]byte, enc.DecodedLen(len(encoded)))
+	n, err := enc.Decode(dst, encoded)
 	return dst[:n], err
 }
 
