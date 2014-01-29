@@ -16,9 +16,9 @@ type Config struct {
 
 	SaltLen int // Length of salt in bytes.
 
-	LgN int // Base2 log of the CPU/Memory cost
-	R   int // block size parameter
-	P   int // parallelization parameter
+	N int // CPU/Memory cost
+	R int // block size parameter
+	P int // parallelization parameter
 }
 
 // Custom source of salt, normally unset.
@@ -32,7 +32,7 @@ var SaltMine mcf.SaltMiner = nil
 const (
 	DefaultKeyLen  = 128
 	DefaultSaltLen = 16
-	DefaultLgN     = 16
+	DefaultN       = 1 << 16
 	DefaultR       = 10
 	DefaultP       = 2
 )
@@ -52,7 +52,7 @@ func GetConfig() Config {
 	return Config{
 		KeyLen:  DefaultKeyLen,
 		SaltLen: DefaultSaltLen,
-		LgN:     DefaultLgN,
+		N:       DefaultN,
 		R:       DefaultR,
 		P:       DefaultP,
 	}
@@ -65,7 +65,7 @@ It is best to modify a copy of the default configuration unless all parameters a
 Here is an example that doubles the default work factor.
 
 	config := scrypt.GetConfig()
-	config.LgN++
+	config.N *= 2
 	scrypt.SetConfig(config)
 
 */
@@ -99,36 +99,22 @@ func init() {
 }
 
 func (c *Config) validate() error {
-	slots := []struct {
-		n string
-		v int
-	}{
-		{"KeyLen", c.KeyLen},
-		{"LgN", c.LgN},
-		{"R", c.R},
-		{"P", c.P},
-	}
-
-	for _, slot := range slots {
-		if slot.v <= 0 {
-			return ErrInvalidParameter{slot.n, slot.v}
-		}
-	}
-
-	return nil
+	//punt, cheat and see if the underlying algorithm complains!
+	_, err := c.Key([]byte("password"), []byte("salt"))
+	return err
 }
 
 // Keep these together.
-var format = "KeyLen=%d,LgN=%d,R=%d,P=%d"
+var format = "KeyLen=%d,N=%d,R=%d,P=%d"
 
 // Params returns the current digest generation parameters.
 func (c *Config) Params() string {
-	return fmt.Sprintf(format, c.KeyLen, c.LgN, c.R, c.P)
+	return fmt.Sprintf(format, c.KeyLen, c.N, c.R, c.P)
 }
 
 // SetParams sets the parameters for digest generation.
 func (c *Config) SetParams(s string) error {
-	_, err := fmt.Sscanf(s, format, &c.KeyLen, &c.LgN, &c.R, &c.P)
+	_, err := fmt.Sscanf(s, format, &c.KeyLen, &c.N, &c.R, &c.P)
 	if err != nil {
 		return err
 	}
@@ -137,17 +123,17 @@ func (c *Config) SetParams(s string) error {
 
 // Salt produces SaltLen bytes of random data.
 func (c *Config) Salt() ([]byte, error) {
-    return mcf.Salt(c.SaltLen, SaltMine)
+	return mcf.Salt(c.SaltLen, SaltMine)
 }
 
 // Key returns a KeyLen long bytes of an scrypt digest of password and salt using the specified parameters.
 func (c *Config) Key(plaintext []byte, salt []byte) (b []byte, err error) {
-	return scrypt.Key(plaintext, salt, 1<<uint(c.LgN), c.R, c.P, c.KeyLen)
+	return scrypt.Key(plaintext, salt, c.N, c.R, c.P, c.KeyLen)
 }
 
 // AtLeast returns true if the parameters used to generate the encoded password
 // are at least as good as those currently in use.
 func (c *Config) AtLeast(current_imp bridge.Implementer) bool {
 	current := current_imp.(*Config) // ok to panic
-	return !(c.LgN < current.LgN || c.R < current.R || c.P < current.P || c.KeyLen < current.KeyLen)
+	return !(c.N < current.N || c.R < current.R || c.P < current.P || c.KeyLen < current.KeyLen)
 }
