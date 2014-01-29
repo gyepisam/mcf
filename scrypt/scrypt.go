@@ -1,87 +1,153 @@
+// Package scrypt uses scrypt to encode passwords for the mcf framework.
 package scrypt
 
-/* 
-  scrypt is a password digest creation and verification library based on scrypt.
-
-  From scrypt sources....
-
-  The recommended parameters for interactive logins as of 2009 are N=16384,
-  r=8, p=1. They should be increased as memory latency and CPU parallelism
-  increases. Remember to get a good random salt.
-
- GSAM notes:
-    What's a good salt length - 32 bytes
-    what's a good password length - minimum 8 bytes, allow up to 100 characters.
-    what are the appropriate cost parameters (work factors).
-    Cost Calculation: (128 * r * p) + (256 * r) + (128 * n * r)
-
-*/
-
 import (
-	digest "code.google.com/p/go.crypto/scrypt"
-	"crypto/subtle"
+	"code.google.com/p/go.crypto/scrypt"
+
 	"fmt"
-	"math"
-	"strconv"
-	"strings"
-	"pwhash"
+
+	"github.com/gyepisam/mcf"
+	"github.com/gyepisam/mcf/bridge"
 )
 
-// According to the author, the following figures are
-// allows a circa 2009 machine to produce a digest in 1 second.
-// In 2013, it's probably best to use (N=2^16, r= 10, p=2).
-// Ideally, the work factors would increases with each passing year.
-
+// Config has all the twiddlable bits.
 type Config struct {
-	Name    string
-	HashLen int // bytes
+	KeyLen int //Key output Size
 
-	// Costs
-	LogN int // Lg(N)
-	R    int
-	P    int
+	SaltLen int // Length of salt in bytes.
+
+	LgN int // Base2 log of the CPU/Memory cost
+	R   int // block size parameter
+	P   int // parallelization parameter
 }
 
-// Name returns item name
-func (conf *Config) Id() string {
-	return conf.Name
+// Custom source of salt, normally unset.
+// Set this if you need to use a custom salt producer.
+// Also useful for testing.
+var SaltMine mcf.SaltMiner = nil
+
+// Circa 2014 work factors.
+// These are exported to show default values.
+// See GetConfig and SetConfig(...) to change them.
+const (
+	DefaultKeyLen  = 128
+	DefaultSaltLen = 16
+	DefaultLgN     = 16
+	DefaultR       = 10
+	DefaultP       = 2
+)
+
+type ErrInvalidParameter struct {
+	Name  string
+	Value int
 }
 
-// Generate returns an a HashLen long scrypt digest of Password and Salt.
-// In the event of an error the return value will be nil and error will be set.
-func (conf *Config) Generate(Password, Salt []byte) (*pwhash.Hash, error) {
+func (e ErrInvalidParameter) Error() string {
+	return fmt.Sprintf("parameter %s has invalid value: %d", e.Name, e.Value)
+}
 
-	h := &pwhash.Hash{
-		Name:    conf.Name,
-		Options: fmt.Sprintf("%d,%d,%d", conf.LogN, conf.R, conf.P),
-		Salt:    Salt,
+// Config returns the default configuration used to generate new password hashes.
+// The return value  can be modified and used as a parameter to SetConfig
+func GetConfig() Config {
+	return Config{
+		KeyLen:  DefaultKeyLen,
+		SaltLen: DefaultSaltLen,
+		LgN:     DefaultLgN,
+		R:       DefaultR,
+		P:       DefaultP,
 	}
+}
 
-	var err error
-	h.Digest, err = digest.Key(Password, Salt, int(math.Pow(2, float64(conf.LogN))), conf.R, conf.P, conf.HashLen)
+/*
+SetConfig sets the default encoding parameters, salt length or key length.
+It is best to modify a copy of the default configuration unless all parameters are changed.
+
+Here is an example that doubles the default work factor.
+
+	config := scrypt.GetConfig()
+	config.LgN++
+	scrypt.SetConfig(config)
+
+*/
+func SetConfig(config Config) error {
+	c := &config
+	err := c.validate()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return h, nil
+	return register(config)
 }
 
-// Verify returns true iff the proffered password hashes to the same value
-// as the Digest part of h, extracted from a previously generated string.
-func (conf *Config) Verify(Password string, h *pwhash.Hash) (bool, error) {
-
-	test_conf := *conf
-	test_conf.HashLen = len(h.Digest)
-
-	options := strings.Split(h.Options, ",")
-	test_conf.LogN, _ = strconv.Atoi(options[0])
-	test_conf.R, _ = strconv.Atoi(options[1])
-	test_conf.P, _ = strconv.Atoi(options[2])
-
-	test_hash, err := test_conf.Generate([]byte(Password), h.Salt)
-	if err != nil {
-		return false, err
+func register(config Config) error {
+	// Constructor function. Provide fresh copy each time.
+	fn := func() bridge.Implementer {
+		c := config
+		return &c
 	}
 
-	return subtle.ConstantTimeCompare([]byte(h.Digest), []byte(test_hash.Digest)) == 1, nil
+	enc := bridge.New([]byte("scrypt"), fn)
+
+	return mcf.Register(mcf.SCRYPT, enc)
+}
+
+func init() {
+	err := register(GetConfig())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (c *Config) validate() error {
+	slots := []struct {
+		n string
+		v int
+	}{
+		{"KeyLen", c.KeyLen},
+		{"LgN", c.LgN},
+		{"R", c.R},
+		{"P", c.P},
+	}
+
+	for _, slot := range slots {
+		if slot.v <= 0 {
+			return ErrInvalidParameter{slot.n, slot.v}
+		}
+	}
+
+	return nil
+}
+
+// Keep these together.
+var format = "KeyLen=%d,LgN=%d,R=%d,P=%d"
+
+// Params returns the current digest generation parameters.
+func (c *Config) Params() string {
+	return fmt.Sprintf(format, c.KeyLen, c.LgN, c.R, c.P)
+}
+
+// SetParams sets the parameters for digest generation.
+func (c *Config) SetParams(s string) error {
+	_, err := fmt.Sscanf(s, format, &c.KeyLen, &c.LgN, &c.R, &c.P)
+	if err != nil {
+		return err
+	}
+	return c.validate()
+}
+
+// Salt produces SaltLen bytes of random data.
+func (c *Config) Salt() ([]byte, error) {
+    return mcf.Salt(c.SaltLen, SaltMine)
+}
+
+// Key returns a KeyLen long bytes of an scrypt digest of password and salt using the specified parameters.
+func (c *Config) Key(plaintext []byte, salt []byte) (b []byte, err error) {
+	return scrypt.Key(plaintext, salt, 1<<uint(c.LgN), c.R, c.P, c.KeyLen)
+}
+
+// AtLeast returns true if the parameters used to generate the encoded password
+// are at least as good as those currently in use.
+func (c *Config) AtLeast(current_imp bridge.Implementer) bool {
+	current := current_imp.(*Config) // ok to panic
+	return !(c.LgN < current.LgN || c.R < current.R || c.P < current.P || c.KeyLen < current.KeyLen)
 }
