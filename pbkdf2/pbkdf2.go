@@ -2,13 +2,13 @@
 package pbkdf2
 
 import (
-	"code.google.com/p/go.crypto/pbkdf2"
-
-	"crypto"
-	_ "crypto/sha1"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"fmt"
+	"hash"
+
+	"code.google.com/p/go.crypto/pbkdf2"
 
 	"github.com/gyepisam/mcf"
 	"github.com/gyepisam/mcf/bridge"
@@ -24,7 +24,7 @@ func (h Hash) Size() int {
 	if !ok {
 		panic("unknown hash: " + string(h))
 	}
-	return hash.Size()
+	return hash().Size()
 }
 
 // Available hashes
@@ -36,12 +36,12 @@ const (
 	SHA512 Hash = "SHA512"
 )
 
-var hashes = map[Hash]crypto.Hash{
-	SHA1:   crypto.SHA1,
-	SHA224: crypto.SHA224,
-	SHA256: crypto.SHA256,
-	SHA384: crypto.SHA384,
-	SHA512: crypto.SHA512,
+var hashes = map[Hash]func() hash.Hash{
+	SHA1:   sha1.New,
+	SHA224: sha256.New224,
+	SHA256: sha256.New,
+	SHA384: sha512.New384,
+	SHA512: sha512.New,
 }
 
 // Config contains all the twiddlable bits.
@@ -51,16 +51,16 @@ type Config struct {
 	// since hash functions generally produce output of differing lengths.
 	Hash Hash
 
-	//Number of iteration rounds in the PBKDF2 algorithm.
-	//The RFC recommends at least 1000
+	// Number of iteration rounds in the PBKDF2 algorithm.
+	// The RFC recommends at least 1000
 	Iterations int
 
 	// Length of key produced by algorithm (bytes).
 	// Defaults to the output length of the HMAC Hash.
 	KeyLen int
 
-	//Size of salt in bytes.
-	//The RFC recommends at least 8 bytes.
+	// Size of salt in bytes.
+	// The RFC recommends at least 8 bytes.
 	SaltLen int
 }
 
@@ -156,7 +156,7 @@ func (c *Config) validate() error {
 }
 
 // Keep these together
-//Note that Sscanf on %s breaks on space and must therefore be the last item (and the only string).
+// Note that Sscanf on %s breaks on space and must therefore be the last item (and the only string).
 const format = "keylen=%d,iterations=%d,hmac=%s"
 
 // Params encodes algorithm parameters in a string for later use.
@@ -180,7 +180,7 @@ func (c *Config) Salt() ([]byte, error) {
 
 // Key generates a PBKDF2 key from the password, salt and iteration count, using the Hash as a pseudorandom function.
 func (c *Config) Key(password, salt []byte) ([]byte, error) {
-	return pbkdf2.Key(password, salt, c.Iterations, c.KeyLen, hashes[c.Hash].New), nil
+	return pbkdf2.Key(password, salt, c.Iterations, c.KeyLen, hashes[c.Hash]), nil
 }
 
 // AtLeast compares the parameters for an encoded password to the current configuration
