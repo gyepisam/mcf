@@ -80,9 +80,6 @@ var testVectors = []struct {
 		"$2a$12$WApznUOJfkEGSmYRfnkrPOr466oFDCaj4b6HY3EXGvfxm43seyhgC"},
 }
 
-func setSalt(salt []byte) {
-}
-
 func TestVectors(t *testing.T) {
 	for i, v := range testVectors {
 
@@ -108,7 +105,7 @@ func TestVectors(t *testing.T) {
 
 		t.Logf("%d: plain: %q, salt: %q, cost: %d\n", i, v.plain, saltIn, cost)
 
-		got, err := mcf.Generate(v.plain)
+		encoded, err := mcf.Create(v.plain)
 		if err != nil {
 			// password must be at least 2 bytes otherwise crypto/blowfish complains.
 			// This should be handled in bcrypt
@@ -119,8 +116,35 @@ func TestVectors(t *testing.T) {
 			continue
 		}
 
-		if want := v.passwd; want != got {
+		if want, got := v.passwd, encoded; want != got {
 			t.Errorf("%d: output mismatch. want: %s, got %s", i, want, got)
+			continue
+		}
+
+		isValid, err := mcf.Verify(v.plain, encoded)
+		if err != nil {
+			t.Errorf("%d: verify: unexpected failure on %q: %s", i, encoded, err)
+			continue
+		}
+		if !isValid {
+			t.Errorf("%d: IsValid: expecting true got false", i)
+			continue
+		}
+
+		for j, pair := range []struct {
+			cost   int
+			answer bool
+		}{{cost, true}, {cost + 1, false}} {
+			SetCost(pair.cost)
+			isCurrent, err := mcf.IsCurrent(encoded)
+			if err != nil {
+				t.Errorf("%d-%d: IsCurrent: unexpected failure: %", i, j, err)
+				continue
+			}
+			if isCurrent != pair.answer {
+				t.Errorf("%d-%d: IsCurrent: expecting %t got %t", i, j, pair.answer, isCurrent)
+				continue
+			}
 		}
 	}
 }
