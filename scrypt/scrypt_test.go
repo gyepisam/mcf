@@ -21,7 +21,7 @@ var plaintext = "g5Dr58dvyD"
 var salt = []byte("d8sYrQbgT")
 
 func roundTrip(t *testing.T, plaintext string) {
-	encoded, err := mcf.Generate(plaintext)
+	encoded, err := mcf.Create(plaintext)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestKey(t *testing.T) {
 
 		setSalt(v.salt)
 
-		encoded, err := mcf.Generate(v.password)
+		encoded, err := mcf.Create(v.password)
 		if err != nil {
 			t.Errorf("%d: got unexpected error: %s", i, err)
 		}
@@ -130,7 +130,7 @@ func TestKey(t *testing.T) {
 
 		setSalt(v.salt)
 
-		_, err = mcf.Generate(v.password)
+		_, err = mcf.Create(v.password)
 		if err == nil {
 			t.Errorf("%d: expected error, got nil", i)
 		}
