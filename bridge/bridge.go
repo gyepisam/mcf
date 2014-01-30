@@ -26,7 +26,7 @@ type Implementer interface {
 	// Produces required amount of salt.
 	Salt() ([]byte, error)
 
-	// Key generates a key (hash, digest, key) using password, salt and built in parameters.
+	// Key generates a key (hash, digest, key) using password, salt and implementer specific parameters.
 	Key(password, salt []byte) ([]byte, error)
 
 	// AtLeast compares the implementer to the current implementer and determines whether the
@@ -51,9 +51,9 @@ func New(name []byte, fn func() Implementer) encoder.Encoder {
 // Id returns the name of the encoder, which is the type of passwords it can handle.
 func (enc *Encoder) Id() []byte { return enc.name }
 
-// Generate produces an encoded password from a plaintext password using the current configuration.
+// Create produces an encoded password from a plaintext password using the current configuration.
 // The application must store the encoded password for future use.
-func (enc *Encoder) Generate(plaintext []byte) (encoded []byte, err error) {
+func (enc *Encoder) Create(plaintext []byte) (encoded []byte, err error) {
 
 	imp := enc.implementer()
 
@@ -98,10 +98,10 @@ func (enc *Encoder) Verify(plaintext, encoded []byte) (isValid bool, err error) 
 	return bytes.Equal(passwd.Key, testKey), nil
 }
 
-// IsCurrent returns true if the parameters used to generated the encoded password
+// IsCurrent returns true if the parameters used to generate the encoded password
 // are at least as good as those in params.
 // If IsCurrent returns false the encoding is out of date and should be regenerated,
-// the application should call mcf.Generate() to produce a new encoding to replace the current one.
+// the application should call mcf.Create() to produce a new encoding to replace the current one.
 func (enc *Encoder) IsCurrent(encoded []byte) (isCurrent bool, err error) {
 
 	passwd := password.New(enc.name)
