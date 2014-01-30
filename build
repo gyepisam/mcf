@@ -1,2 +1,0 @@
-#!/bin/sh
-find $(dirname $0) -type f -name '*.go' -a \! -name '*_test.go' | xargs -L1 go build
