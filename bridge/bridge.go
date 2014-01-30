@@ -15,7 +15,7 @@ import (
 	"github.com/gyepisam/mcf/password"
 )
 
-// Implementer represents a concrete implementation such as scrypt or pbfdk2
+// Implementer represents a concrete implementation such as scrypt or pbkdf2
 type Implementer interface {
 	// Params encodes the parameters used by Key.
 	Params() string
