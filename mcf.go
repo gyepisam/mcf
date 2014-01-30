@@ -2,93 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-/*
-
-Package mcf manages application passwords using a variety of password key derivation functions (bcrypt, scrypt, pbkdf2).
-
-The package provides a simple interface for applications to create, verify and update passwords
-with secure defaults that can be easily changed.
-It outputs encoded passwords in Modular Crypt Format (http://pythonhosted.org/passlib/modular_crypt_format.html) for easy storage and subsequent verification.
-
-MCF is a self identifying password encoding mechanism that allows for the simultaneous existence of multiple
-types and generations of passwords.  This provides a mechanism to easily implement changes in security policies
-with respect to algorithms used, increased work factors, salt length, etc without affecting the application or users.
-
-It is useful for applications and web sites that need to support multiple password encoding mechanisms
-and/or need to allow for different upgrade policies.
-
-See: (https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet) for more information.
-
-Usage:
-
-Import the mcf package along with at least one encoder.
-You can import as many encoders as desired.
-The first encoder is used to encode all new passwords.
-Subsequent encoders are used to decode.
-
-Note that once an encoder has been superceded (is no longer the first imported encoding)
-it must not be removed from the import lists until all existing instances of
-that encoding have either been converted to a newer encoding or invalidated.
-
-	import (
-	  "github.com/gyepisam/mcf"
-	  _ "github.com/gyepisam/mcf/scrypt"
-	)
-
-	// A user provides a password at registration or signup.
-	username, plaintext := "alibaba", "dfj1A4finbfya9BFDL7d"
-
-	// Create an encoding using the default
-	encoded, err := mcf.Create(plaintext)
-	// error handling elided
-
-    // Insert encoded value and user info in database
-    user = db.NewUser()
-    user.Username = username
-    user.Password = encoded
-    err = user.Save()
-    // handle errors
-
-To authenticate the user:
-
-	// A user provides a password at login.
-	username, plaintext := "alibaba", "dfj1A4finbfya9BFDL7d"
-
-	user, err := db.FindUser("username = $1", username)
-	// error handling elided
-
-	isValid, err := mcf.Verify(plaintext, user.Password)
-	// error handling elided
-
-When authentication succeeds, it is useful to determine whether the password needs to be re-encoded.
-It is the best possible time (also, the only possible time) to do this, since the plaintext password
-is available. The final part changes to something like:
-
-	if isValid {
-	  go func(plaintext, encoded, username string) {
-            isCurrent, err := mcf.IsCurrent(encoded)
-            // error handling elided but assumed to return.
-		    if !isCurrent {
-		      encoded, err := mcf.Create(plaintext)
-		     // Update encoded value in database
-		    }
-	  } (plaintext, encoded, user.username)
-
-	  // Success
-	}
-
-The update is handled by a go routine because it is not interactive and should not slow down
-the user experience. Given that, it is especially important to log errors that might occur.
-
-Changing work factors or implementing other policy changes is similarly simple:
-
-    func init() {
-	    config := scrypt.GetConfig()
-	    config.LgN++ // double the default work factor
-	    scrypt.SetConfig(config)
-    }
-
-*/
 package mcf
 
 import (
@@ -106,42 +19,15 @@ type instance struct {
 	Encoder
 }
 
-// Encoding represents a number for an encoder and is used to disambiguate amongst the various encoders.
-// Not all encoders will be implemented, installed, or used in any given system.
-type Encoding uint8
-
-// Known encodings
-const (
-	BCRYPT      Encoding = iota // import "github.com/gyepisam/mcf/bcrypt"
-	SCRYPT                      // import "github.com/gyepisam/mcf/scrypt"
-	PBKDF2                      // import "github.com/gyepisam/mcf/pbkdf2"
-	CRYPT                       // Not implemented yet
-	maxEncoding                 //Not a valid encoding!
-)
-
-func (e Encoding) IsValid() bool {
-	return e >= 0 && e < maxEncoding
-}
-
-type ErrUnregisteredEncoding struct{ s string }
-
-func (e *ErrUnregisteredEncoding) Error() string { return e.s }
-
-type ErrInvalidEncoding struct{ s string }
-
-func (e *ErrInvalidEncoding) Error() string { return e.s }
-
-func (e Encoding) errInvalid() error {
-	return &ErrInvalidEncoding{"invalid encoding: " + string(e)}
-}
-
 var (
 	defaultEncoding = maxEncoding
 	encoders        [maxEncoding]*instance
 )
 
+// ErrNoEncoder is returned if an encoded password does not match any known encoders.
+// The encoded password is appended to the error message to aid in resolving the problem.
 type ErrNoEncoder struct {
-	encoded string 
+	encoded string
 }
 
 func (e *ErrNoEncoder) Error() string {
@@ -254,7 +140,8 @@ func IsCurrent(encoded string) (isCurrent bool, err error) {
 		isCurrent, err = encoder.IsCurrent(b)
 
 		if err == nil && isCurrent {
-			// change in encoding scheme?
+			// if the encoded password's scheme is not the default,
+			// then it is out of date.
 			isCurrent = encoding == defaultEncoding
 		}
 	}
@@ -262,8 +149,8 @@ func IsCurrent(encoded string) (isCurrent bool, err error) {
 }
 
 // Salt produces the specified number of random bytes.
-// If a function of type SaltMiner is provided, it is used to produce the salt.
-// Otherwise, rand.Reader is used.
+// If minerFn is nil, the function generates bytes from rand.Reader.
+// Otherwise minerFn is called and its results returned.
 func Salt(size int, minerFn SaltMiner) (salt []byte, err error) {
 
 	if minerFn == nil {
@@ -275,7 +162,7 @@ func Salt(size int, minerFn SaltMiner) (salt []byte, err error) {
 	salt, err = minerFn(size)
 	if err == nil {
 		if m, n := size, len(salt); m != n {
-			err = fmt.Errorf("Short salt read. want: %d, got %d", m, n)
+			err = fmt.Errorf("%s: short salt read. want: %d, got %d", defaultEncoding, m, n)
 		}
 	}
 	return
