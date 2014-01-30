@@ -5,6 +5,9 @@ import (
 	"code.google.com/p/go.crypto/pbkdf2"
 
 	"crypto"
+	_ "crypto/sha1"
+	_ "crypto/sha256"
+	_ "crypto/sha512"
 	"fmt"
 
 	"github.com/gyepisam/mcf"
@@ -113,7 +116,7 @@ func SetConfig(config Config) error {
 	return register(config)
 }
 
-// Custom source of salt, normally unset.
+// SaltMine is a custom source of salt, which is normally unset.
 // Change this if you need to use a custom salt producer.
 var SaltMine mcf.SaltMiner = nil
 
