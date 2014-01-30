@@ -1,4 +1,8 @@
-// Package scrypt uses scrypt to encode passwords for the mcf framework.
+// Copyright 2014 Gyepi Sam. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package scrypt implements a password encoding mechanism for the mcf framework 
 package scrypt
 
 import (
@@ -10,33 +14,38 @@ import (
 	"github.com/gyepisam/mcf/bridge"
 )
 
-// Config has all the twiddlable bits.
-type Config struct {
-	KeyLen int //Key output Size
-
-	SaltLen int // Length of salt in bytes.
-
-	N int // CPU/Memory cost
-	R int // block size parameter
-	P int // parallelization parameter
-}
-
-// Custom source of salt, normally unset.
-// Set this if you need to use a custom salt producer.
-// Also useful for testing.
-var SaltMine mcf.SaltMiner = nil
-
 // Circa 2014 work factors.
 // These are exported to show default values.
 // See GetConfig and SetConfig(...) to change them.
 const (
-	DefaultKeyLen  = 128
+	DefaultKeyLen  =  32
 	DefaultSaltLen = 16
 	DefaultN       = 1 << 16
 	DefaultR       = 10
 	DefaultP       = 2
 )
 
+
+// Config contains the scrypt algorithm parameters and other associated values.
+// Use the GetConfig() and SetConfig() combination to change any desired parameters.
+type Config struct {
+	KeyLen int //Key output size in bytes.
+	SaltLen int // Length of salt in bytes.
+
+	N int // CPU/Memory cost. Must be a power of two.
+	R int // block size parameter.
+	P int // parallelization parameter.
+}
+
+// Custom source of salt, normally unset.
+// Set this if you need to override the user of rand.Reader and
+// use a custom salt producer.
+// Also useful for testing.
+var SaltMine mcf.SaltMiner = nil
+
+// ErrInvalidParameter is returned by SetConfig if any of the provided parameters
+// fail validation. The error message contains the name and value of the faulty
+// parameter to aid in resolving the problem.
 type ErrInvalidParameter struct {
 	Name  string
 	Value int
@@ -107,12 +116,12 @@ func (c *Config) validate() error {
 // Keep these together.
 var format = "KeyLen=%d,N=%d,R=%d,P=%d"
 
-// Params returns the current digest generation parameters.
+// Params returns the current digest algorithm parameters.
 func (c *Config) Params() string {
 	return fmt.Sprintf(format, c.KeyLen, c.N, c.R, c.P)
 }
 
-// SetParams sets the parameters for digest generation.
+// SetParams sets the parameters for the digest algorithm.
 func (c *Config) SetParams(s string) error {
 	_, err := fmt.Sscanf(s, format, &c.KeyLen, &c.N, &c.R, &c.P)
 	if err != nil {
@@ -126,7 +135,8 @@ func (c *Config) Salt() ([]byte, error) {
 	return mcf.Salt(c.SaltLen, SaltMine)
 }
 
-// Key returns a KeyLen long bytes of an scrypt digest of password and salt using the specified parameters.
+// Key returns an scrypt digest of password and salt using the algorithm parameters: N, r, and p.
+// The returned value is of length KeyLen.
 func (c *Config) Key(plaintext []byte, salt []byte) (b []byte, err error) {
 	return scrypt.Key(plaintext, salt, c.N, c.R, c.P, c.KeyLen)
 }
