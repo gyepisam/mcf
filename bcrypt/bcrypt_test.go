@@ -1,7 +1,11 @@
+// Copyright 2014 Gyepi Sam. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package bcrypt
 
 // Test vector copied from https://code.google.com/p/bcryptnet/source/browse/src/BCryptNET.Tests/BCryptTest.cs
-// and edited for Go
+// and edited for Go.
 
 import (
 	"bytes"
@@ -94,21 +98,26 @@ func TestVectors(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d: error decoding salt: %s", i, err)
 		}
-		// Horrible hack to ensure that crypto/bcrypt uses my salt.
-		rand.Reader = bytes.NewReader(salt)
-
 		var cost int
 		if _, err := fmt.Sscanf(costIn, "%02d", &cost); err != nil {
 			t.Fatalf("%d: error decoding param [%+v]: %s", i, costIn, err)
 		}
-		SetCost(cost)
 
-		//t.Logf("%d: plain: %q, salt: %q, cost: %d\n", i, v.plain, saltIn, cost)
+		// Hijack rand.Reader to feed salt to crypto/bcrypt.
+		// Need extra salt because SetCost generates a digest
+		// to test the new cost, and each of the 3 calls to it uses
+		// up one portion of salt.
+		rand.Reader = bytes.NewReader(bytes.Repeat(salt, 4))
+
+		err = SetCost(cost)
+		if err != nil {
+			t.Errorf("%d: SetCost: unexpected error: %s", i, err)
+		}
 
 		encoded, err := mcf.Create(v.plain)
 		if err != nil {
 			// password must be at least 2 bytes otherwise crypto/blowfish complains.
-			// This should be handled in bcrypt
+			// This really should be handled in crypto/bcrypt
 			if len(v.plain) < 3 {
 				continue
 			}
@@ -135,7 +144,12 @@ func TestVectors(t *testing.T) {
 			cost   int
 			answer bool
 		}{{cost, true}, {cost + 1, false}} {
-			SetCost(pair.cost)
+
+			err := SetCost(pair.cost)
+			if err != nil {
+				t.Errorf("%d-%d: SetCost: unexpected error: %s", i, j, err)
+			}
+
 			isCurrent, err := mcf.IsCurrent(encoded)
 			if err != nil {
 				t.Errorf("%d-%d: IsCurrent: unexpected failure: %", i, j, err)
