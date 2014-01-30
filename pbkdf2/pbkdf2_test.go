@@ -123,7 +123,7 @@ func TestVectors(t *testing.T) {
 
 		setSalt(v.salt)
 
-		encoded, err := mcf.Generate(v.plain)
+		encoded, err := mcf.Create(v.plain)
 		if err != nil {
 			t.Errorf("%d: got unexpected error: %s", i, err)
 		}
@@ -144,6 +144,34 @@ func TestVectors(t *testing.T) {
 
 		if p, q := key, passwd.Key; !bytes.Equal(p, q) {
 			t.Errorf("%d: key: expected %x, got %x", i, p, q)
+		}
+
+		isValid, err := mcf.Verify(v.plain, encoded)
+		if err != nil {
+			t.Errorf("%d: verify: unexpected failure on %q: %s", i, encoded, err)
+			continue
+		}
+		if !isValid {
+			t.Errorf("%d: verify - unexpectedly returned false", i)
+			continue
+		}
+
+        // perturb configuration...
+        newConfig := *config
+        newConfig.KeyLen  += 1
+
+		for j, c := range []*Config {config, &newConfig} {
+            setConfig(c.KeyLen, c.Iterations, c.SaltLen)
+			isCurrent, err := mcf.IsCurrent(encoded)
+			if err != nil {
+				t.Errorf("%d-%d: IsCurrent: unexpected failure: %", i, j, err)
+				continue
+			}
+            //old configuration says yes, new configuration says no
+            if answer := c == config; isCurrent != answer {
+				t.Errorf("%d-%d: IsCurrent: expecting %t got %t", i, j, answer, isCurrent)
+				continue
+			}
 		}
 	}
 }
