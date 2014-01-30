@@ -1,7 +1,1 @@
-run () {
-    (cd $1 && go test -i && go test -v)
-}
-
-run bcrypt
-run scrypt
-run pbkdf2 
+tail -n +2 DIRS | xargs -L1 -i sh -c "cd {} && go test -i && go test -v"
