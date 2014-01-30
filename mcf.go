@@ -20,8 +20,8 @@ type instance struct {
 }
 
 var (
-	defaultEncoding = maxEncoding
 	encoders        [maxEncoding]*instance
+	defaultEncoding = maxEncoding
 )
 
 // ErrNoEncoder is returned if an encoded password does not match any known encoders.
@@ -82,7 +82,9 @@ func SetDefault(encoding Encoding) error {
 }
 
 // Create takes a plaintext password and uses the default encoder to
-// create and return an encoded password in Modular Crypt Format.
+// create an encoded password in Modular Crypt Format, which it returns.
+// The application is expected to store this password in order to subsequently
+// verify the plaintext password.
 func Create(plaintext string) (encoded string, err error) {
 
 	if !defaultEncoding.IsValid() {
