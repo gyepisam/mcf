@@ -1,4 +1,9 @@
-// Package pbkdf2 uses pbkdf2 to encode passwords for the mcf framework.
+// Copyright 2014 Gyepi Sam. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+// Package pbkdf2 implements a password encoding mechanism for the mcf framework 
 package pbkdf2
 
 import (
@@ -17,8 +22,10 @@ import (
 // Hash represents the HMAC hash function that the PBKDF2 algorithm uses as a pseudorandom function.
 type Hash string
 
+// Hash implements the Stringer interface
 func (h Hash) String() string { return string(h) }
 
+// Size is the output length of the hash function.
 func (h Hash) Size() int {
 	hash, ok := hashes[h]
 	if !ok {
@@ -44,7 +51,7 @@ var hashes = map[Hash]func() hash.Hash{
 	SHA512: sha512.New,
 }
 
-// Config contains all the twiddlable bits.
+// Config contains the parameters for the PBKDF2 algorithm along with associated values.
 type Config struct {
 	// The Pseudo Random Function (prf) used by the PBKDF2 algorithm.
 	// When this value is changed, KeyLen will most likely need to change as well
@@ -55,7 +62,7 @@ type Config struct {
 	// The RFC recommends at least 1000
 	Iterations int
 
-	// Length of key produced by algorithm (bytes).
+	// Length of key produced by algorithm in bytes.
 	// Defaults to the output length of the HMAC Hash.
 	KeyLen int
 
@@ -107,7 +114,7 @@ func GetConfig() Config {
 // then set
 //
 //      err := pbkdf2.SetConfig(config)
-//      // handle error, if any
+//      // error handling elided 
 func SetConfig(config Config) error {
 	err := (&config).validate()
 	if err != nil {
@@ -117,7 +124,7 @@ func SetConfig(config Config) error {
 }
 
 // SaltMine is a custom source of salt, which is normally unset.
-// Change this if you need to use a custom salt producer.
+// Change this to override the use of rand.Reader if you need to use a custom salt producer.
 var SaltMine mcf.SaltMiner = nil
 
 func register(config Config) error {
@@ -128,7 +135,7 @@ func register(config Config) error {
 		return &c
 	}
 
-	// use a the bridge to handle the generic parts of the interface
+	// the bridge handles the generic parts of the interface
 	enc := bridge.New([]byte("pbkdf2"), fn)
 
 	return mcf.Register(mcf.PBKDF2, enc)
@@ -142,15 +149,19 @@ func init() {
 }
 
 // ErrInvalidHash is returned when an invalid Hash is encountered.
-type ErrInvalidHash string
+// The name of the hash is printed in the Error() string and is also exported. 
+type ErrInvalidHash struct {
+    Hash Hash
+}
 
-func (e ErrInvalidHash) Error() string {
-	return string(e)
+// ErrInvalidHash implements the Error interface.
+func (e *ErrInvalidHash) Error() string {
+  return fmt.Sprintf("Invalid Hash: %s", e.Hash)
 }
 
 func (c *Config) validate() error {
 	if _, ok := hashes[c.Hash]; !ok {
-		return ErrInvalidHash("Invalid Hash: " + string(c.Hash))
+		return &ErrInvalidHash{c.Hash}
 	}
 	return nil
 }
@@ -178,7 +189,8 @@ func (c *Config) Salt() ([]byte, error) {
 	return mcf.Salt(c.SaltLen, SaltMine)
 }
 
-// Key generates a PBKDF2 key from the password, salt and iteration count, using the Hash as a pseudorandom function.
+// Key generates a PBKDF2 digest from the password, salt and iteration count,
+// using the Hash as a pseudorandom function.
 func (c *Config) Key(password, salt []byte) ([]byte, error) {
 	return pbkdf2.Key(password, salt, c.Iterations, c.KeyLen, hashes[c.Hash]), nil
 }
