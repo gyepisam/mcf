@@ -46,8 +46,8 @@ func (e ErrInvalidParameter) Error() string {
 	return fmt.Sprintf("parameter %s has invalid value: %d", e.Name, e.Value)
 }
 
-// Config returns the default configuration used to generate new password hashes.
-// The return value  can be modified and used as a parameter to SetConfig
+// Config returns the default configuration used to create new scrypt password hashes.
+// The return value can be modified and used as a parameter to SetConfig
 func GetConfig() Config {
 	return Config{
 		KeyLen:  DefaultKeyLen,
