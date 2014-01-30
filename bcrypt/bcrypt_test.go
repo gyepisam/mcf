@@ -103,7 +103,7 @@ func TestVectors(t *testing.T) {
 		}
 		SetCost(cost)
 
-		t.Logf("%d: plain: %q, salt: %q, cost: %d\n", i, v.plain, saltIn, cost)
+		//t.Logf("%d: plain: %q, salt: %q, cost: %d\n", i, v.plain, saltIn, cost)
 
 		encoded, err := mcf.Create(v.plain)
 		if err != nil {
