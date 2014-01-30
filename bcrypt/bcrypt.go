@@ -34,15 +34,15 @@ func SetCost(cost int) error {
 }
 
 func (c *config) Id() []byte {
-	return []byte("bcrypt")
+	return []byte("2a") //  hashes are prefixed with ..., not "bcrypt"
 }
 
-func (c *config) Generate(plaintext []byte) (encoded []byte, err error) {
+func (c *config) Create(plaintext []byte) (encoded []byte, err error) {
 	return bcrypt.GenerateFromPassword(plaintext, c.Cost)
 }
 
 func (c *config) Verify(plaintext, encoded []byte) (isValid bool, err error) {
-	err = bcrypt.CompareHashAndPassword(plaintext, encoded)
+	err = bcrypt.CompareHashAndPassword(encoded, plaintext)
 	isValid = err == nil
 	if err == bcrypt.ErrMismatchedHashAndPassword {
 		err = nil
