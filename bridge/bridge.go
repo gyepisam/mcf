@@ -1,10 +1,13 @@
-/*
-Package bridge simplifies the creation of a password encoder by abstracting out the generic parts.
+// Copyright 2014 Gyepi Sam. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-Concrete implementations that use this package can be greatly simplified.
-See github.com/gyepisam/mcf/scrypt and github.com/gyepisam/mcf/pbkdf2
 
-*/
+
+// Package bridge simplifies the creation of a password encoder by abstracting out the generic parts.
+
+// Concrete implementations that use this package can be greatly simplified.
+// See github.com/gyepisam/mcf/scrypt and github.com/gyepisam/mcf/pbkdf2
 
 package bridge
 
