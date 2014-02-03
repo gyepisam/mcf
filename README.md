@@ -1,6 +1,6 @@
 #Description
 
-##mcf is a Go library for creating, verifying, upgrading and managing a variety of hashed password schemes.
+mcf is a Go library for creating, verifying, upgrading and managing a variety of hashed password schemes.
 
 mcf provides a simple API for applications to use a variety of password
 hashing schemes, including bcrypt, scrypt, and pbkdf2 as well a management
@@ -23,7 +23,7 @@ upgrade policies would find it especially useful.
 
 mcf can be installed with the command:
 
-    `go get github.com/gyepisam/mcf`
+    go get github.com/gyepisam/mcf
 
 #Example
 
