@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
 // Package password manipulates passwords stored in Modular Crypt Format.
 package password
 
 import (
 	"bytes"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -80,7 +80,7 @@ func (p *Passwd) Parse(encoded []byte) (err error) {
 		return inputErr("password has too many fields")
 	}
 
-	if b := parts[0]; !bytes.Equal(b, p.Name) {
+	if b := parts[0]; subtle.ConstantTimeCompare(b, p.Name) == 0 {
 		return inputErr("unexpected password type: %s", string(b))
 	}
 

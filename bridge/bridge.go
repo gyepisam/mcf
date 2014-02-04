@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
-
 // Package bridge simplifies the creation of a password encoder by abstracting out the generic parts.
 
 // Concrete implementations that use this package can be greatly simplified.
@@ -12,7 +10,7 @@
 package bridge
 
 import (
-	"bytes"
+	"crypto/subtle"
 
 	"github.com/gyepisam/mcf/encoder"
 	"github.com/gyepisam/mcf/password"
@@ -98,7 +96,7 @@ func (enc *Encoder) Verify(plaintext, encoded []byte) (isValid bool, err error) 
 		return
 	}
 
-	return bytes.Equal(passwd.Key, testKey), nil
+	return subtle.ConstantTimeCompare(passwd.Key, testKey) == 1, nil
 }
 
 // IsCurrent returns true if the parameters used to generate the encoded password
