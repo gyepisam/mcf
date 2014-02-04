@@ -156,19 +156,19 @@ func TestVectors(t *testing.T) {
 			continue
 		}
 
-        // perturb configuration...
-        newConfig := *config
-        newConfig.KeyLen  += 1
+		// perturb configuration...
+		newConfig := *config
+		newConfig.KeyLen += 1
 
-		for j, c := range []*Config {config, &newConfig} {
-            setConfig(c.KeyLen, c.Iterations, c.SaltLen)
+		for j, c := range []*Config{config, &newConfig} {
+			setConfig(c.KeyLen, c.Iterations, c.SaltLen)
 			isCurrent, err := mcf.IsCurrent(encoded)
 			if err != nil {
 				t.Errorf("%d-%d: IsCurrent: unexpected failure: %", i, j, err)
 				continue
 			}
-            //old configuration says yes, new configuration says no
-            if answer := c == config; isCurrent != answer {
+			//old configuration says yes, new configuration says no
+			if answer := c == config; isCurrent != answer {
 				t.Errorf("%d-%d: IsCurrent: expecting %t got %t", i, j, answer, isCurrent)
 				continue
 			}

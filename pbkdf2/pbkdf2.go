@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
-// Package pbkdf2 implements a password encoding mechanism for the mcf framework 
+// Package pbkdf2 implements a password encoding mechanism for the mcf framework
 package pbkdf2
 
 import (
@@ -114,7 +113,7 @@ func GetConfig() Config {
 // then set
 //
 //      err := pbkdf2.SetConfig(config)
-//      // error handling elided 
+//      // error handling elided
 func SetConfig(config Config) error {
 	err := (&config).validate()
 	if err != nil {
@@ -149,14 +148,14 @@ func init() {
 }
 
 // ErrInvalidHash is returned when an invalid Hash is encountered.
-// The name of the hash is printed in the Error() string and is also exported. 
+// The name of the hash is printed in the Error() string and is also exported.
 type ErrInvalidHash struct {
-    Hash Hash
+	Hash Hash
 }
 
 // ErrInvalidHash implements the Error interface.
 func (e *ErrInvalidHash) Error() string {
-  return fmt.Sprintf("Invalid Hash: %s", e.Hash)
+	return fmt.Sprintf("Invalid Hash: %s", e.Hash)
 }
 
 func (c *Config) validate() error {

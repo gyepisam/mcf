@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
 package mcf
 
 // An Encoding is a number for an encoder and is used to disambiguate amongst the various encoders.
@@ -11,9 +10,9 @@ type Encoding uint8
 
 // List of known encodings.
 const (
-	BCRYPT      Encoding = iota // import "github.com/gyepisam/mcf/bcrypt"
-	SCRYPT                      // import "github.com/gyepisam/mcf/scrypt"
-	PBKDF2                      // import "github.com/gyepisam/mcf/pbkdf2"
+	BCRYPT Encoding = iota // import "github.com/gyepisam/mcf/bcrypt"
+	SCRYPT                 // import "github.com/gyepisam/mcf/scrypt"
+	PBKDF2                 // import "github.com/gyepisam/mcf/pbkdf2"
 	//CRYPT                       // Not implemented yet
 
 	maxEncoding
@@ -29,8 +28,8 @@ func (e Encoding) String() string {
 		return "scrypt"
 	case PBKDF2:
 		return "pbkdf2"
-/*	case CRYPT:
-		return "crypt" */
+		/*	case CRYPT:
+			return "crypt" */
 	}
 	return "unknown"
 }

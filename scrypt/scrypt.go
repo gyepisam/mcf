@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package scrypt implements a password encoding mechanism for the mcf framework 
+// Package scrypt implements a password encoding mechanism for the mcf framework
 package scrypt
 
 import (
@@ -18,18 +18,17 @@ import (
 // These are exported to show default values.
 // See GetConfig and SetConfig(...) to change them.
 const (
-	DefaultKeyLen  =  32
+	DefaultKeyLen  = 32
 	DefaultSaltLen = 16
 	DefaultN       = 1 << 16
 	DefaultR       = 10
 	DefaultP       = 2
 )
 
-
 // Config contains the scrypt algorithm parameters and other associated values.
 // Use the GetConfig() and SetConfig() combination to change any desired parameters.
 type Config struct {
-	KeyLen int //Key output size in bytes.
+	KeyLen  int //Key output size in bytes.
 	SaltLen int // Length of salt in bytes.
 
 	N int // CPU/Memory cost. Must be a power of two.

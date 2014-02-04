@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
 /*
 Package mcf is a Go library for creating, verifying, upgrading and managing bcrypt, scrypt, and pbkdf2 password hashes.
 

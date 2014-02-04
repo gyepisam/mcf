@@ -33,9 +33,11 @@ func init() {
 // SetCost sets the cost parameter of the Bcrypt algorithm.
 // The value is the base 2 logarithm of the work factor.
 func SetCost(cost int) error {
-    // punt and see if the underlying algorithm likes the new value!
-    _, err := bcrypt.GenerateFromPassword([]byte("password"), cost)
-    if err != nil { return err }
+	// punt and see if the underlying algorithm likes the new value!
+	_, err := bcrypt.GenerateFromPassword([]byte("password"), cost)
+	if err != nil {
+		return err
+	}
 	return register(config{cost})
 }
 
