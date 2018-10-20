@@ -1,4 +1,4 @@
-// Copyright 2014 Gyepi Sam. All rights reserved.
+// Copyright 2018 Gyepi Sam. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"hash"
 
-	"code.google.com/p/go.crypto/pbkdf2"
+	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/gyepisam/mcf"
 	"github.com/gyepisam/mcf/bridge"

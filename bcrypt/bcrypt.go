@@ -1,4 +1,4 @@
-// Copyright 2014 Gyepi Sam. All rights reserved.
+// Copyright 2018 Gyepi Sam. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,8 +6,8 @@
 package bcrypt
 
 import (
-	"code.google.com/p/go.crypto/bcrypt"
 	"github.com/gyepisam/mcf"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // DefaultCost is the base 2 logarithm of the Bcrypt work factor
